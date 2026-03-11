@@ -1,10 +1,7 @@
-
 name: Publish synapse-tld to PyPI
 
 on:
-  release:
-    types: [published]
-  workflow_dispatch:  # allows manual trigger from GitHub UI
+  workflow_dispatch:
 
 jobs:
   publish:
@@ -19,16 +16,40 @@ jobs:
           python-version: "3.11"
 
       - name: Install build tools
-        run: pip install build twine
+        run: pip install build twine setuptools wheel
+
+      - name: Prepare package structure
+        run: |
+          mkdir -p build_pkg/synapse
+          cp synapse/__init__.py build_pkg/synapse/__init__.py
+          if [ -f synapse/package_readme.md ]; then
+            cp synapse/package_readme.md build_pkg/README.md
+          else
+            echo "TLD/1.0 open standard." > build_pkg/README.md
+          fi
+          cat > build_pkg/setup.py << 'SETUP'
+          from setuptools import setup
+          setup(
+              name="synapse-tld",
+              version="1.0.0",
+              author="zstickytreefrog",
+              author_email="asdfbbcbbq@gmail.com",
+              description="TLD/1.0 — The open standard for the full-spectrum web.",
+              long_description=open("README.md").read(),
+              long_description_content_type="text/markdown",
+              url="https://github.com/mkuwandf/synapse",
+              packages=["synapse"],
+              python_requires=">=3.7",
+          )
+          SETUP
 
       - name: Build package
         run: |
-          cd synapse
-          python ../setup.py sdist bdist_wheel || python -m build
+          cd build_pkg
+          python setup.py sdist bdist_wheel
 
       - name: Publish to PyPI
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-        run: |
-          twine upload dist/* --skip-existing
+        run: twine upload build_pkg/dist/* --skip-existing
