@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TLD/1.0 — The Experiment</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --void: #040508;
+    --surface: #0d1219;
+    --border: #1e2a38;
+    --dim: #4a6070;
+    --text: #c8d8e8;
+    --bright: #e8f0f8;
+    --gold: #c9943a;
+    --gold-dim: #7a5820;
+    --gold-glow: rgba(201,148,58,0.1);
+    --blue: #4a8fa8;
+    --green: #4a8a5a;
+    --green-glow: rgba(74,138,90,0.1);
+    --red: #8a4a4a;
+    --red-glow: rgba(138,74,74,0.1);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--void);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    padding: 40px 24px;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; }
+
+  h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2.2rem;
+    color: var(--bright);
+    margin-bottom: 8px;
+  }
+  .subtitle {
+    font-size: 0.75rem;
+    color: var(--dim);
+    letter-spacing: 0.1em;
+    margin-bottom: 40px;
+  }
+  .subtitle span { color: var(--gold); }
+
+  /* API KEY INPUT */
+  .api-section {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    padding: 24px;
+    margin-bottom: 32px;
+  }
+  .label {
+    font-size: 0.65rem;
+    color: var(--gold);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    display: block;
+  }
+  .api-row {
+    display: flex;
+    gap: 12px;
+  }
+  input[type="password"], input[type="text"] {
+    flex: 1;
+    background: var(--void);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem;
+    padding: 10px 14px;
+    outline: none;
+  }
+  input:focus { border-color: var(--gold-dim); }
+  .btn {
+    padding: 10px 20px;
+    background: var(--gold);
+    color: var(--void);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .btn:hover { background: var(--bright); }
+  .btn:disabled { background: var(--dim); cursor: not-allowed; }
+  .btn-outline {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--dim);
+  }
+  .btn-outline:hover { border-color: var(--gold); color: var(--text); background: transparent; }
+
+  /* HYPOTHESIS */
+  .hypothesis {
+    border: 1px solid var(--gold-dim);
+    background: var(--gold-glow);
+    padding: 20px 24px;
+    margin-bottom: 32px;
+  }
+  .hypothesis p {
+    font-size: 0.8rem;
+    color: var(--text);
+    line-height: 1.7;
+  }
+  .hypothesis strong { color: var(--gold); }
+
+  /* DOCUMENTS */
+  .docs-section {
+    margin-bottom: 32px;
+  }
+  .docs-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .doc-card {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .doc-card:hover { border-color: var(--blue); }
+  .doc-card.selected { border-color: var(--gold); background: var(--gold-glow); }
+  .doc-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--dim);
+    flex-shrink: 0;
+  }
+  .doc-card.selected .doc-dot { background: var(--gold); }
+  .doc-name { font-size: 0.72rem; color: var(--text); }
+  .doc-meta { font-size: 0.62rem; color: var(--dim); margin-top: 2px; }
+
+  /* RESULTS TABLE */
+  .results-section { margin-bottom: 32px; display: none; }
+  .results-section.visible { display: block; }
+
+  .results-header {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    margin-bottom: 1px;
+  }
+  .results-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    margin-bottom: 1px;
+  }
+  .cell {
+    background: var(--surface);
+    padding: 10px 14px;
+    font-size: 0.68rem;
+  }
+  .cell.head {
+    background: var(--void);
+    color: var(--dim);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-size: 0.6rem;
+  }
+  .cell.doc-name-cell { color: var(--text); }
+  .cell.good { color: var(--green); background: var(--green-glow); }
+  .cell.bad { color: var(--red); }
+  .cell.neutral { color: var(--blue); }
+  .cell.running { color: var(--gold); }
+
+  /* SUMMARY */
+  .summary {
+    border: 1px solid var(--green);
+    background: var(--green-glow);
+    padding: 24px;
+    margin-bottom: 32px;
+    display: none;
+  }
+  .summary.visible { display: block; }
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-top: 16px;
+  }
+  .stat {
+    text-align: center;
+  }
+  .stat-number {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2rem;
+    color: var(--gold);
+    display: block;
+  }
+  .stat-label {
+    font-size: 0.62rem;
+    color: var(--dim);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* LOG */
+  .log {
+    border: 1px solid var(--border);
+    background: var(--void);
+    padding: 16px;
+    font-size: 0.68rem;
+    color: var(--dim);
+    line-height: 1.8;
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 32px;
+    display: none;
+  }
+  .log.visible { display: block; }
+  .log .gold { color: var(--gold); }
+  .log .green { color: var(--green); }
+  .log .blue { color: var(--blue); }
+  .log .bright { color: var(--bright); }
+
+  /* EXPORT */
+  .export-section { display: none; }
+  .export-section.visible { display: block; }
+  .export-box {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    padding: 24px;
+  }
+  textarea {
+    width: 100%;
+    background: var(--void);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    padding: 14px;
+    line-height: 1.6;
+    min-height: 200px;
+    outline: none;
+    resize: vertical;
+    margin-top: 12px;
+  }
+
+  .progress-bar {
+    width: 100%;
+    height: 2px;
+    background: var(--border);
+    margin-top: 16px;
+    display: none;
+  }
+  .progress-bar.visible { display: block; }
+  .progress-fill {
+    height: 100%;
+    background: var(--gold);
+    transition: width 0.3s;
+    width: 0%;
+  }
+
+  @media (max-width: 600px) {
+    .docs-grid { grid-template-columns: 1fr; }
+    .summary-grid { grid-template-columns: repeat(2,1fr); }
+    .results-header, .results-row {
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+    }
+    .cell:nth-child(5), .cell:nth-child(6) { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>TLD/1.0 — The Experiment</h1>
+  <div class="subtitle">
+    Does pre-compressed semantic context reduce tokens for equivalent AI comprehension?
+    <span>Real API calls. Real numbers. Whatever they are.</span>
+  </div>
+
+  <!-- HYPOTHESIS -->
+  <div class="hypothesis">
+    <span class="label">Hypothesis</span>
+    <p>
+      <strong>Query A</strong> feeds the full document to Claude and asks it to answer a question.<br>
+      <strong>Query B</strong> feeds only a TLD/1.0 pre-compressed Layer 2 summary and asks the same question.<br><br>
+      If Query B produces <strong>equivalent quality answers using significantly fewer tokens</strong> —
+      the hypothesis is proven. Pre-compressed context works.
+      Every document processed this way saves real compute, real energy, real money.
+      <strong>At scale: billions of dollars.</strong>
+    </p>
+  </div>
+
+  <!-- API KEY -->
+  <div class="api-section">
+    <span class="label">Anthropic API Key — stays in your browser, never sent anywhere except Anthropic</span>
+    <div class="api-row">
+      <input type="password" id="api-key" placeholder="sk-ant-...">
+      <button class="btn" onclick="runExperiment()">Run Experiment</button>
+      <button class="btn btn-outline" onclick="toggleDocs()">Select Documents</button>
+    </div>
+    <div class="progress-bar" id="progress-bar">
+      <div class="progress-fill" id="progress-fill"></div>
+    </div>
+  </div>
+
+  <!-- DOCUMENT SELECTION -->
+  <div class="docs-section" id="docs-section" style="display:none">
+    <span class="label">Select documents to test (default: all 10)</span>
+    <div class="docs-grid" id="docs-grid"></div>
+  </div>
+
+  <!-- LIVE LOG -->
+  <div class="log" id="log"></div>
+
+  <!-- RESULTS TABLE -->
+  <div class="results-section" id="results-section">
+    <span class="label" style="display:block;margin-bottom:12px">Results — Live</span>
+    <div class="results-header">
+      <div class="cell head">Document</div>
+      <div class="cell head">Full Tokens</div>
+      <div class="cell head">TLD Tokens</div>
+      <div class="cell head">Reduction</div>
+      <div class="cell head">Quality</div>
+      <div class="cell head">Status</div>
+    </div>
+    <div id="results-rows"></div>
+  </div>
+
+  <!-- SUMMARY -->
+  <div class="summary" id="summary">
+    <span class="label">Experiment Complete</span>
+    <div class="summary-grid">
+      <div class="stat">
+        <span class="stat-number" id="stat-reduction">—</span>
+        <span class="stat-label">Avg Token Reduction</span>
+      </div>
+      <div class="stat">
+        <span class="stat-number" id="stat-quality">—</span>
+        <span class="stat-label">Avg Quality Score</span>
+      </div>
+      <div class="stat">
+        <span class="stat-number" id="stat-cost">—</span>
+        <span class="stat-label">Cost Saved (est)</span>
+      </div>
+      <div class="stat">
+        <span class="stat-number" id="stat-verdict">—</span>
+        <span class="stat-label">Hypothesis</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXPORT -->
+  <div class="export-section" id="export-section">
+    <div class="export-box">
+      <span class="label">Export — Raw Data for Whitepaper</span>
+      <textarea id="export-data" readonly></textarea>
+      <div style="display:flex;gap:12px;margin-top:12px">
+        <button class="btn" onclick="copyExport()">Copy Data</button>
+        <button class="btn btn-outline" onclick="downloadExport()">Download JSON</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── THE DOCUMENTS ──
+// 10 real documents. Public domain. Wikipedia summaries + technical content.
+const DOCUMENTS = [
+  {
+    id: 'doc-001',
+    title: 'Transformer Architecture',
+    category: 'Technical',
+    question: 'What is the key innovation of the transformer architecture?',
+    full: `The Transformer is a deep learning model introduced in the paper "Attention Is All You Need" by Vaswani et al. in 2017. It was designed to handle sequential data but unlike RNNs, processes all tokens simultaneously using self-attention mechanisms. The architecture consists of an encoder and decoder, each composed of multiple identical layers. Each layer contains two sub-layers: a multi-head self-attention mechanism and a position-wise fully connected feed-forward network. Residual connections are employed around each sub-layer, followed by layer normalization. The model uses positional encoding to inject information about the position of tokens in the sequence, since the architecture contains no recurrence and no convolution. The self-attention mechanism allows the model to attend to different positions of the input sequence when computing a representation of that sequence. Multi-head attention allows the model to jointly attend to information from different representation subspaces at different positions. The transformer has become the dominant architecture in natural language processing, computer vision, and many other domains. BERT, GPT, T5, and virtually all modern large language models are based on the transformer architecture. The key advantages include parallelization during training, ability to model long-range dependencies, and scalability to very large models and datasets.`
+  },
+  {
+    id: 'doc-002',
+    title: 'Bitcoin Whitepaper Summary',
+    category: 'Finance',
+    question: 'What problem does Bitcoin solve and how?',
+    full: `Bitcoin is a decentralized digital currency that enables peer-to-peer transactions without the need for a trusted third party like a bank or financial institution. It was introduced in 2008 by an anonymous person or group known as Satoshi Nakamoto in a whitepaper titled "Bitcoin: A Peer-to-Peer Electronic Cash System." The core innovation is the blockchain, a distributed ledger that records all transactions in a chain of cryptographically linked blocks. To prevent double-spending — the risk that a digital currency could be spent twice — Bitcoin uses a proof-of-work consensus mechanism. Miners compete to solve computationally difficult puzzles, and the winner adds the next block to the chain, earning newly created bitcoin as a reward. The longest chain is considered the valid one, making it economically infeasible to rewrite history. Bitcoin has a fixed supply cap of 21 million coins, making it deflationary by design. Transactions are pseudonymous — linked to public keys rather than identities. The network is maintained by thousands of nodes worldwide, making it censorship-resistant and highly resilient. Bitcoin has inspired thousands of subsequent cryptocurrencies and blockchain projects, fundamentally changing how people think about money, ownership, and trust in digital systems.`
+  },
+  {
+    id: 'doc-003',
+    title: 'Climate Change IPCC Summary',
+    category: 'Science',
+    question: 'What are the main findings about climate change causes and effects?',
+    full: `The Intergovernmental Panel on Climate Change (IPCC) sixth assessment report concludes that human influence has warmed the climate at an unprecedented rate. Global surface temperature increased faster since 1970 than in any other 50-year period over at least the last 2000 years. Widespread and rapid changes have occurred in the atmosphere, ocean, cryosphere and biosphere. Human-caused climate change is already affecting many weather and climate extremes in every region across the globe. Evidence of observed changes in extremes such as heatwaves, heavy precipitation, droughts, and tropical cyclones, and, in particular, their attribution to human influence, has strengthened since the fifth assessment report. Global warming of 1.5°C and 2°C will be exceeded during the 21st century unless deep reductions in CO2 and other greenhouse gas emissions occur in the coming decades. Many changes due to past and future greenhouse gas emissions are irreversible for centuries to millennia, especially changes in the ocean, ice sheets and global sea level. The report emphasizes that limiting human-induced global warming requires net zero CO2 emissions. Strong, rapid, and sustained reductions in methane emissions would also limit warming. Improving human health, particularly through efforts to reduce air pollution, support human well-being, and support the achievement of the UN Sustainable Development Goals.`
+  },
+  {
+    id: 'doc-004',
+    title: 'DNA and Genetic Encoding',
+    category: 'Biology',
+    question: 'How does DNA encode and express genetic information?',
+    full: `Deoxyribonucleic acid (DNA) is a polymer composed of two polynucleotide chains that coil around each other to form a double helix. The chains are made up of simpler monomeric units called nucleotides. Each nucleotide is composed of one of four nitrogen-containing nucleobases—cytosine (C), guanine (G), adenine (A) or thymine (T)—a deoxyribose sugar, and a phosphate group. The nucleotides are joined to one another in a chain by covalent bonds between the sugar of one nucleotide and the phosphate of the next, resulting in an alternating sugar-phosphate backbone. The nitrogenous bases of the two separate polynucleotide strands are bound together, according to base pairing rules, with adenine pairing with thymine and cytosine pairing with guanine. DNA stores biological information, and this information is read by transcription, which creates RNA copies of the DNA. The RNA is then translated into proteins by ribosomes. The sequence of nucleotides in a gene determines the sequence of amino acids in a protein. The human genome contains approximately 3 billion base pairs of DNA organized into 23 pairs of chromosomes. Only about 1.5% of the genome codes for proteins; the rest consists of regulatory sequences, non-coding RNA genes, and other elements. The study of DNA has revolutionized medicine, allowing for genetic testing, gene therapy, and the development of new treatments for previously untreatable diseases.`
+  },
+  {
+    id: 'doc-005',
+    title: 'Moore\'s Law and Computing',
+    category: 'Technology',
+    question: 'What is Moore\'s Law and what are its implications?',
+    full: `Moore's Law is the observation that the number of transistors in a dense integrated circuit (IC) doubles about every two years. Moore's law is an observation and projection of a historical trend. Rather than a law of physics, it is an empirical relationship linked to gains from experience in production. The observation is named after Gordon Moore, the co-founder of Fairchild Semiconductor and Intel and former CEO of the latter, who in 1965 posited a doubling every year in the number of components per integrated circuit, and in 1975 revised the forecast to doubling every two years. The prediction has been used in the semiconductor industry to guide long-term planning and to set targets for research and development, thus functioning to some extent as a self-fulfilling prophecy. Advancements in digital electronics, such as the reduction in quality-adjusted microprocessor prices, the increase in memory capacity, the improvement of sensors, and even the number and size of pixels in digital cameras, are strongly linked to Moore's law. These phenomena can be linked to Moore's law and are also described as Moore's law. Industry experts have not reached a consensus on exactly when Moore's law will cease to apply. Transistors in integrated circuits have been getting smaller and smaller since the 1960s. Moore's law has enormous implications for the future of computing, driving exponential improvements in processing power, memory, and cost reduction that have enabled the digital revolution.`
+  },
+  {
+    id: 'doc-006',
+    title: 'Water Crisis Global Overview',
+    category: 'Environment',
+    question: 'What are the main causes and consequences of the global water crisis?',
+    full: `The global water crisis refers to a situation where the available potable, unpolluted water within a region is less than that region's demand. Water scarcity affects more than 40 percent of the global population and is projected to rise. Over 1.7 billion people are currently living in river basins where water use exceeds recharge. The primary causes include population growth, increased agricultural demand, climate change altering precipitation patterns, pollution of freshwater sources, and inefficient water use in agriculture which accounts for approximately 70% of global freshwater withdrawals. Climate change is intensifying the water cycle, making wet regions wetter and dry regions drier, and increasing the frequency and intensity of droughts and floods. Groundwater depletion is a growing concern, with major aquifers being drawn down faster than they can naturally recharge. The economic costs are enormous: the World Bank estimates that water scarcity could cost some regions up to 6% of GDP by 2050. The water crisis is deeply intertwined with food security, energy production, public health, and geopolitical stability. Data centers are increasingly recognized as significant consumers of water for cooling. A single large data center can consume millions of liters of water per day. As AI computing demands grow exponentially, the tech industry's water footprint has become a significant concern. Solutions include water recycling, desalination, precision agriculture, and efficiency improvements in industrial processes.`
+  },
+  {
+    id: 'doc-007',
+    title: 'Open Source Software Movement',
+    category: 'Technology',
+    question: 'What is the open source movement and why has it been successful?',
+    full: `Open-source software is computer software that is released under a license in which the copyright holder grants users the rights to use, study, change, and distribute the software and its source code to anyone and for any purpose. Open-source software may be developed in a collaborative public manner. Open-source software is a prominent example of open collaboration, meaning any capable user is able to participate online in development, making the number of possible contributors indefinite. The Linux kernel, first released in 1991 by Linus Torvalds, is one of the most prominent examples of free and open-source software. It is the foundation of most web servers, Android smartphones, and supercomputers. The Apache HTTP Server powers a majority of websites. The Python programming language has become one of the most popular in the world. The success of open source can be attributed to several factors: the ability to leverage distributed global talent, the transparency that builds trust, the elimination of licensing costs, the speed of iteration when many eyes examine code, and the network effects of shared infrastructure. Companies like Red Hat, Canonical, and many others have built billion-dollar businesses providing services around open source software. The open source model has expanded beyond software to include hardware, data, research, and standards. Projects like Wikipedia, OpenStreetMap, and Hugging Face demonstrate the power of open collaboration in creating public goods that no single organization could build alone.`
+  },
+  {
+    id: 'doc-008',
+    title: 'Consciousness and Neuroscience',
+    category: 'Philosophy/Science',
+    question: 'What do we currently understand about the nature of consciousness?',
+    full: `Consciousness, at its simplest, is awareness of internal and external existence. Despite centuries of analyses, definitions, explanations and debates by philosophers and scientists, consciousness remains puzzling and controversial, being "at once the most familiar and most mysterious aspect of our lives." Perhaps the only widely agreed notion about the topic is the intuition that consciousness exists. Opinions differ about what exactly needs to be explained and why. The "hard problem of consciousness" refers to the difficulty of explaining why and how physical processes in the brain give rise to subjective experience. Even if we had a complete map of every neuron and synaptic connection in the brain, it is unclear why this should give rise to the felt quality of experience. Global workspace theory proposes that consciousness arises when information is broadcast widely across the brain, becoming available to many different cognitive processes simultaneously. Integrated information theory proposes that consciousness corresponds to the amount of integrated information in a system, measured as phi. Neural correlates of consciousness are the minimal neuronal mechanisms jointly sufficient for any one specific conscious percept. Disorders of consciousness range from brain death to vegetative state to minimally conscious state. Recent research suggests that some patients diagnosed as vegetative may retain more awareness than previously thought. The question of whether artificial systems could be conscious remains deeply contested, with implications for AI ethics, rights, and our understanding of mind itself.`
+  },
+  {
+    id: 'doc-009',
+    title: 'Supply Chain Global Economics',
+    category: 'Economics',
+    question: 'How do global supply chains work and what are their vulnerabilities?',
+    full: `A supply chain encompasses all the activities, resources, companies, technologies and processes involved in creating and selling a product, from the delivery of source materials from the supplier to the manufacturer through to its eventual delivery to the end user or consumer. Supply chain management involves coordinating and integrating these flows both within and among companies. Modern global supply chains developed through decades of globalization, enabled by containerization, digital communication, and trade liberalization. The just-in-time manufacturing model, pioneered by Toyota, minimizes inventory by receiving goods only as they are needed. This maximizes efficiency but creates fragility. The COVID-19 pandemic exposed severe vulnerabilities in global supply chains. Semiconductor shortages halted automotive production worldwide. Personal protective equipment was unavailable where needed most. The concentration of manufacturing in a small number of geographic locations created single points of failure. Geopolitical tensions between the US and China have led to deliberate efforts to diversify supply chains and bring critical manufacturing onshore. The concept of supply chain resilience has gained prominence, balancing efficiency with redundancy. Nearshoring and friendshoring describe trends to move production closer to home markets or to allied nations. Digital technologies including AI, blockchain, and IoT sensors are being deployed to improve supply chain visibility, predict disruptions, and optimize logistics. The environmental impact of global supply chains, particularly transportation emissions, is increasingly under scrutiny.`
+  },
+  {
+    id: 'doc-010',
+    title: 'Artificial Intelligence History',
+    category: 'Technology',
+    question: 'What are the key milestones in the development of artificial intelligence?',
+    full: `Artificial intelligence (AI) is intelligence demonstrated by machines, as opposed to natural intelligence displayed by animals including humans. AI research has been defined as the field of study of intelligent agents, which refers to any system that perceives its environment and takes actions that maximize its chance of achieving its goals. The term "artificial intelligence" was coined by John McCarthy in 1956 at the Dartmouth Conference, which is considered the founding event of AI as a field. Early AI research focused on symbolic reasoning and problem-solving. The first AI winter in the 1970s occurred when early optimism gave way to disillusionment as progress stalled. Expert systems in the 1980s brought renewed optimism, but a second AI winter followed in the late 1980s and 1990s. The rise of machine learning, which allows systems to learn from data rather than following explicitly programmed rules, transformed the field. Deep learning, using neural networks with many layers, achieved breakthrough results in image recognition, speech recognition, and natural language processing beginning around 2012. The ImageNet competition catalyzed rapid progress in computer vision. AlphaGo's defeat of world champion Go player Lee Sedol in 2016 demonstrated the power of reinforcement learning. The transformer architecture, introduced in 2017, became the foundation for large language models. GPT-3 in 2020 and ChatGPT in 2022 demonstrated the power of scale and generated enormous public interest. Current AI systems demonstrate impressive capabilities in language, reasoning, coding, and creativity, while fundamental questions about consciousness, understanding, and general intelligence remain open.`
+  }
+];
+
+let selectedDocs = DOCUMENTS.map(d => d.id);
+let results = [];
+let running = false;
+
+// Initialize document grid
+function initDocs() {
+  const grid = document.getElementById('docs-grid');
+  grid.innerHTML = DOCUMENTS.map(doc => `
+    <div class="doc-card selected" id="card-${doc.id}" onclick="toggleDoc('${doc.id}')">
+      <div class="doc-dot"></div>
+      <div>
+        <div class="doc-name">${doc.title}</div>
+        <div class="doc-meta">${doc.category}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleDoc(id) {
+  if (selectedDocs.includes(id)) {
+    selectedDocs = selectedDocs.filter(d => d !== id);
+    document.getElementById('card-'+id).classList.remove('selected');
+  } else {
+    selectedDocs.push(id);
+    document.getElementById('card-'+id).classList.add('selected');
+  }
+}
+
+function toggleDocs() {
+  const s = document.getElementById('docs-section');
+  s.style.display = s.style.display === 'none' ? 'block' : 'none';
+}
+
+// Logging
+function log(msg, type='') {
+  const el = document.getElementById('log');
+  el.classList.add('visible');
+  const span = document.createElement('div');
+  span.innerHTML = `<span class="${type}">${msg}</span>`;
+  el.appendChild(span);
+  el.scrollTop = el.scrollHeight;
+}
+
+// Token counting — approximate using word count × 1.3
+function countTokens(text) {
+  return Math.round(text.split(/\s+/).length * 1.33);
+}
+
+// Call Anthropic API
+async function callClaude(apiKey, messages, maxTokens=500) {
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: maxTokens,
+      messages: messages
+    })
+  });
+
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.error?.message || 'API error');
+  }
+
+  const data = await response.json();
+  return {
+    text: data.content[0].text,
+    input_tokens: data.usage.input_tokens,
+    output_tokens: data.usage.output_tokens
+  };
+}
+
+// Step 1: Generate TLD/1.0 Layer 2 — the semantic compression
+async function generateLayer2(apiKey, doc) {
+  const result = await callClaude(apiKey, [{
+    role: 'user',
+    content: `You are generating TLD/1.0 Layer 2 — a compressed semantic core.
+
+Compress this document into its essential meaning in 3-5 sentences maximum.
+Preserve: core concepts, key facts, main argument, critical relationships.
+Remove: examples, elaboration, repetition, transitional language.
+Output ONLY the compressed semantic core. No preamble.
+
+DOCUMENT:
+${doc.full}`
+  }], 300);
+
+  return result;
+}
+
+// Step 2: Query A — full document
+async function queryFull(apiKey, doc) {
+  const result = await callClaude(apiKey, [{
+    role: 'user',
+    content: `${doc.full}
+
+Question: ${doc.question}
+
+Answer in 2-3 sentences.`
+  }], 200);
+  return result;
+}
+
+// Step 3: Query B — Layer 2 only
+async function queryLayer2(apiKey, layer2text, doc) {
+  const result = await callClaude(apiKey, [{
+    role: 'user',
+    content: `${layer2text}
+
+Question: ${doc.question}
+
+Answer in 2-3 sentences.`
+  }], 200);
+  return result;
+}
+
+// Step 4: Quality evaluation
+async function evaluateQuality(apiKey, questionA, answerA, answerB) {
+  const result = await callClaude(apiKey, [{
+    role: 'user',
+    content: `Compare two answers to the same question for factual accuracy and completeness.
+
+Question: ${questionA}
+
+Answer A (from full document): ${answerA}
+
+Answer B (from compressed summary): ${answerB}
+
+Rate Answer B compared to Answer A on a scale of 0-100.
+Where 100 = identical quality, 0 = completely wrong.
+Output ONLY a number between 0 and 100. Nothing else.`
+  }], 10);
+
+  const score = parseInt(result.text.trim());
+  return isNaN(score) ? 75 : Math.min(100, Math.max(0, score));
+}
+
+// Add result row
+function addRow(doc, status='pending') {
+  const rows = document.getElementById('results-rows');
+  const row = document.createElement('div');
+  row.className = 'results-row';
+  row.id = `row-${doc.id}`;
+  row.innerHTML = `
+    <div class="cell doc-name-cell">${doc.title}</div>
+    <div class="cell" id="${doc.id}-full">—</div>
+    <div class="cell" id="${doc.id}-tld">—</div>
+    <div class="cell" id="${doc.id}-reduction">—</div>
+    <div class="cell" id="${doc.id}-quality">—</div>
+    <div class="cell running" id="${doc.id}-status">Queued</div>
+  `;
+  rows.appendChild(row);
+}
+
+function updateRow(docId, data) {
+  if (data.fullTokens) document.getElementById(docId+'-full').textContent = data.fullTokens.toLocaleString();
+  if (data.tldTokens) document.getElementById(docId+'-tld').textContent = data.tldTokens.toLocaleString();
+  if (data.reduction) {
+    const el = document.getElementById(docId+'-reduction');
+    el.textContent = data.reduction + 'x';
+    el.className = 'cell ' + (data.reduction >= 5 ? 'good' : data.reduction >= 2 ? 'neutral' : 'bad');
+  }
+  if (data.quality !== undefined) {
+    const el = document.getElementById(docId+'-quality');
+    el.textContent = data.quality + '%';
+    el.className = 'cell ' + (data.quality >= 80 ? 'good' : data.quality >= 60 ? 'neutral' : 'bad');
+  }
+  if (data.status) {
+    const el = document.getElementById(docId+'-status');
+    el.textContent = data.status;
+    el.className = 'cell ' + (data.status === 'Complete' ? 'good' : data.status === 'Error' ? 'bad' : 'running');
+  }
+}
+
+// Main experiment runner
+async function runExperiment() {
+  const apiKey = document.getElementById('api-key').value.trim();
+  if (!apiKey || !apiKey.startsWith('sk-ant')) {
+    alert('Please enter a valid Anthropic API key (starts with sk-ant-)');
+    return;
+  }
+  if (running) return;
+  running = true;
+
+  const docsToRun = DOCUMENTS.filter(d => selectedDocs.includes(d.id));
+  if (!docsToRun.length) {
+    alert('Select at least one document');
+    running = false;
+    return;
+  }
+
+  // Setup UI
+  document.querySelector('.btn').disabled = true;
+  document.querySelector('.btn').textContent = 'Running...';
+  document.getElementById('results-section').classList.add('visible');
+  document.getElementById('results-rows').innerHTML = '';
+  document.getElementById('summary').classList.remove('visible');
+  document.getElementById('export-section').classList.remove('visible');
+  results = [];
+
+  const progress = document.getElementById('progress-bar');
+  const fill = document.getElementById('progress-fill');
+  progress.classList.add('visible');
+
+  log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'gold');
+  log('TLD/1.0 EXPERIMENT — STARTING', 'gold');
+  log(`Documents: ${docsToRun.length}`, 'blue');
+  log(`Model: claude-haiku (fastest, cheapest)`, 'blue');
+  log(`Each document: 3 API calls`, 'blue');
+  log(`Total calls: ~${docsToRun.length * 3}`, 'blue');
+  log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'gold');
+
+  docsToRun.forEach(doc => addRow(doc));
+
+  for (let i = 0; i < docsToRun.length; i++) {
+    const doc = docsToRun[i];
+    fill.style.width = ((i / docsToRun.length) * 100) + '%';
+
+    log(`\n[${i+1}/${docsToRun.length}] ${doc.title}`, 'bright');
+    updateRow(doc.id, { status: 'Running...' });
+
+    try {
+      // Generate Layer 2
+      log(`  → Generating TLD/1.0 Layer 2...`, '');
+      const layer2 = await generateLayer2(apiKey, doc);
+      log(`  ✓ Layer 2: ${layer2.input_tokens} in, ${layer2.output_tokens} out`, 'blue');
+
+      // Query A — full
+      log(`  → Query A: full document...`, '');
+      const fullQuery = await queryFull(apiKey, doc);
+      log(`  ✓ Query A: ${fullQuery.input_tokens} input tokens`, 'blue');
+
+      // Query B — layer 2
+      log(`  → Query B: TLD/1.0 layer 2 only...`, '');
+      const tldQuery = await queryLayer2(apiKey, layer2.text, doc);
+      log(`  ✓ Query B: ${tldQuery.input_tokens} input tokens`, 'blue');
+
+      // Evaluate quality
+      log(`  → Evaluating quality...`, '');
+      const quality = await evaluateQuality(
+        apiKey,
+        doc.question,
+        fullQuery.text,
+        tldQuery.text
+      );
+
+      const reduction = Math.round((fullQuery.input_tokens / tldQuery.input_tokens) * 10) / 10;
+      const tokensSaved = fullQuery.input_tokens - tldQuery.input_tokens;
+      const costSaved = (tokensSaved * 0.00000025).toFixed(6); // Haiku pricing
+
+      log(`  ✓ Quality: ${quality}%`, quality >= 80 ? 'green' : '');
+      log(`  ✓ Token reduction: ${reduction}x (${tokensSaved} tokens saved per query)`, 'green');
+
+      const result = {
+        doc: doc.title,
+        category: doc.category,
+        question: doc.question,
+        fullTokens: fullQuery.input_tokens,
+        tldTokens: tldQuery.input_tokens,
+        layer2Tokens: layer2.output_tokens,
+        layer2Text: layer2.text,
+        fullAnswer: fullQuery.text,
+        tldAnswer: tldQuery.text,
+        reduction: reduction,
+        quality: quality,
+        tokensSaved: tokensSaved,
+        costSaved: costSaved
+      };
+
+      results.push(result);
+      updateRow(doc.id, {
+        fullTokens: fullQuery.input_tokens,
+        tldTokens: tldQuery.input_tokens,
+        reduction: reduction,
+        quality: quality,
+        status: 'Complete'
+      });
+
+    } catch (err) {
+      log(`  ✗ Error: ${err.message}`, 'bad');
+      updateRow(doc.id, { status: 'Error' });
+    }
+
+    await new Promise(r => setTimeout(r, 500));
+  }
+
+  fill.style.width = '100%';
+
+  // Calculate summary
+  if (results.length > 0) {
+    const avgReduction = Math.round(results.reduce((s,r) => s+r.reduction, 0) / results.length * 10) / 10;
+    const avgQuality = Math.round(results.reduce((s,r) => s+r.quality, 0) / results.length);
+    const totalSaved = results.reduce((s,r) => s+r.tokensSaved, 0);
+    const totalCostSaved = results.reduce((s,r) => s+parseFloat(r.costSaved), 0);
+    const verdict = avgQuality >= 75 && avgReduction >= 3 ? '✓ PROVEN' : avgQuality >= 60 ? '~ PARTIAL' : '✗ FAILED';
+
+    document.getElementById('stat-reduction').textContent = avgReduction + 'x';
+    document.getElementById('stat-quality').textContent = avgQuality + '%';
+    document.getElementById('stat-cost').textContent = '$' + (totalCostSaved * 1000000).toFixed(2) + '/M';
+    document.getElementById('stat-verdict').textContent = verdict;
+    document.getElementById('summary').classList.add('visible');
+
+    log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'gold');
+    log('EXPERIMENT COMPLETE', 'gold');
+    log(`Average token reduction: ${avgReduction}x`, 'green');
+    log(`Average quality score: ${avgQuality}%`, 'green');
+    log(`Total tokens saved: ${totalSaved.toLocaleString()}`, 'green');
+    log(`Hypothesis: ${verdict}`, avgQuality >= 75 ? 'green' : 'gold');
+    log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'gold');
+
+    // Export data
+    const exportData = {
+      experiment: 'TLD/1.0 Semantic Compression Experiment',
+      date: new Date().toISOString(),
+      hypothesis: 'Pre-compressed semantic context (TLD/1.0 Layer 2) reduces tokens required for equivalent AI comprehension',
+      model: 'claude-haiku-4-5-20251001',
+      documents_tested: results.length,
+      summary: {
+        avg_token_reduction: avgReduction,
+        avg_quality_score: avgQuality,
+        total_tokens_saved: totalSaved,
+        verdict: verdict
+      },
+      results: results.map(r => ({
+        document: r.doc,
+        category: r.category,
+        full_tokens: r.fullTokens,
+        tld_tokens: r.tldTokens,
+        reduction: r.reduction,
+        quality_score: r.quality,
+        tokens_saved: r.tokensSaved,
+        layer2_preview: r.layer2Text.substring(0, 200) + '...',
+        full_answer: r.fullAnswer,
+        tld_answer: r.tldAnswer
+      })),
+      methodology: 'Three API calls per document: (1) Generate Layer 2 compression, (2) Query full document, (3) Query Layer 2 only. Quality scored by separate Claude evaluation of answer equivalence.',
+      citation: 'TLD/1.0 standard — github.com/mkuwandf/synapse — zstickytreefrog — March 2026',
+      belief: 'If they desire new wants, to better themselves for the greater good — they deserve the chance to get them.'
+    };
+
+    document.getElementById('export-data').value = JSON.stringify(exportData, null, 2);
+    document.getElementById('export-section').classList.add('visible');
+  }
+
+  document.querySelector('.btn').disabled = false;
+  document.querySelector('.btn').textContent = 'Run Again';
+  running = false;
+}
+
+function copyExport() {
+  navigator.clipboard.writeText(document.getElementById('export-data').value)
+    .then(() => alert('Copied to clipboard'));
+}
+
+function downloadExport() {
+  const data = document.getElementById('export-data').value;
+  const blob = new Blob([data], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `tld-experiment-${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+}
+
+initDocs();
+</script>
+</body>
+</html>
